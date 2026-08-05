@@ -19,5 +19,22 @@ services:
     volumes:
       - kafka_data:/var/lib/kafka/data
 
+  spark-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    container_name: flight-ops-spark
+    depends_on:
+      - kafka
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - LAKEHOUSE_ROOT=/data/lakehouse
+    volumes:
+      - ../src/lakehouse:/app
+      - ../data:/data
+    working_dir: /app
+    profiles:
+      - tools
+
 volumes:
   kafka_data:

@@ -17,7 +17,7 @@ Flight status events (gate changes, delays, boarding, departures, cancellations)
 ## Status
 
 - [x] **Ingestion** — Kafka (KRaft mode, no Zookeeper) + Pydantic contract + dead-letter routing. Verified end-to-end.
-- [ ] Delta Lakehouse
+- [x] **Delta Lakehouse** — Bronze/Silver/Gold with a real `MERGE` upsert and schema enforcement. Verified end-to-end.
 - [ ] RAG Pipeline
 - [ ] Orchestration
 - [ ] Quality Gate + Lineage
@@ -50,6 +50,45 @@ Validation run complete: 200 consumed, 170 accepted -> 'flight-events-validated'
 ```
 
 Each dead-lettered record carries the original payload plus the specific rejection reason (missing field, invalid enum, negative delay, missing gate on boarding, bad timestamp, missing delay reason) — proving the failure path, not just the happy path.
+
+## Running the lakehouse stage (Day 2)
+
+Runs inside a Linux container (`docker/Dockerfile.spark`) rather than natively on Windows, to avoid the native Hadoop/`winutils.exe` dependency Spark needs on Windows.
+
+```bash
+# 1. Build the Spark runner image (once)
+cd docker
+docker compose build spark-runner
+
+# 2. Load newly-validated Kafka records into Bronze (raw, as received)
+docker compose run --rm spark-runner python3 kafka_to_bronze.py
+
+# 3. MERGE Bronze's latest-per-flight state into Silver, keyed on flight_id
+docker compose run --rm spark-runner python3 silver_merge.py
+
+# 4. Recompute the Gold daily on-time/delay aggregate from Silver
+docker compose run --rm spark-runner python3 gold_aggregate.py
+
+# 5. Prove Delta actually refuses a malformed write (wrong type + missing
+#    required column) rather than silently coercing it
+docker compose run --rm spark-runner python3 demo_schema_enforcement.py
+```
+
+**Expected output** (see [docs/day2_lakehouse_run.txt](docs/day2_lakehouse_run.txt) for a full captured run, including the incremental MERGE going from 170 → 295 flights across two batches):
+
+```
+Silver: MERGE complete, 295 flights tracked at /data/lakehouse/silver/flight_state
+...
+Gold: wrote daily ops summary for 3 airline/date groups to /data/lakehouse/gold/daily_ops_summary
++------------+--------------+-------------+-------------+---------------+------------------+-----------+
+|airline_code|scheduled_date|total_flights|delayed_count|cancelled_count|avg_delay_minutes |on_time_pct|
++------------+--------------+-------------+-------------+---------------+------------------+-----------+
+...
+REJECTED as expected. Delta raised: AnalysisException
+Reason: [DELTA_FAILED_TO_MERGE_FIELDS] Failed to merge fields 'delay_minutes' and 'delay_minutes'
+```
+
+Silver's `MERGE` only updates a matched `flight_id` when the incoming event is actually newer (`event_ts` comparison) — a blind overwrite would let a late-arriving stale event clobber a newer one, which is exactly the kind of bug multi-feed ingestion produces in practice. Gold is a genuine aggregate (counts/rates/averages grouped by airline + date), computed fresh from Silver each run, not a copy of it.
 
 ## Training program attribution
 

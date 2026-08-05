@@ -1,0 +1,33 @@
+=== Bronze: initial load ===
+Bronze: appended 247 records to /data/lakehouse/bronze/flight_events
+
+=== Silver: initial table creation (no existing table yet) ===
+Silver: initialized table with 170 flights at /data/lakehouse/silver/flight_state
+
+=== Gold: first aggregate ===
+Gold: wrote daily ops summary for 3 airline/date groups to /data/lakehouse/gold/daily_ops_summary
++------------+--------------+-------------+-------------+---------------+------------------+-----------+
+|airline_code|scheduled_date|total_flights|delayed_count|cancelled_count|avg_delay_minutes |on_time_pct|
++------------+--------------+-------------+-------------+---------------+------------------+-----------+
+|F3          |2026-08-05    |55           |7            |7              |153.57142857142858|74.5       |
+|SV          |2026-08-05    |53           |10           |3              |114.5             |75.5       |
+|XY          |2026-08-05    |62           |12           |10             |104.58333333333333|64.5       |
++------------+--------------+-------------+-------------+---------------+------------------+-----------+
+
+=== Schema enforcement proof ===
+Attempting to append a record with wrong type (delay_minutes as string) and a missing required column (flight_id) into Bronze...
+
+REJECTED as expected. Delta raised: AnalysisException
+Reason: [DELTA_FAILED_TO_MERGE_FIELDS] Failed to merge fields 'delay_minutes' and 'delay_minutes'
+
+=== Bronze: second (incremental) load ===
+Bronze: appended 171 records to /data/lakehouse/bronze/flight_events
+
+=== Silver: real MERGE against the existing table ===
+Silver: MERGE complete, 295 flights tracked at /data/lakehouse/silver/flight_state
+
+(170 flights from the first load + 171 newly-validated events deduplicated
+to their latest event_ts per flight_id -> some flight_ids matched and were
+updated in place, others were new inserts, netting 295 total - proving the
+MERGE actually exercises both the whenMatchedUpdateAll and
+whenNotMatchedInsertAll branches, not just a first-time table creation.)
