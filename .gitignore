@@ -1,0 +1,33 @@
+# Environments
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Secrets / config
+.env
+*.local
+
+# Data & outputs
+data/
+*.parquet
+*.log
+checkpoints/
+spark-warehouse/
+metastore_db/
+
+# Airflow
+airflow.db
+airflow.cfg
+logs/
+webserver_config.py
+
+# Vector store local persistence
+qdrant_storage/
+chroma_db/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
