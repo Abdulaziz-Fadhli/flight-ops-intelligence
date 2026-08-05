@@ -16,7 +16,40 @@ Flight status events (gate changes, delays, boarding, departures, cancellations)
 
 ## Status
 
-Project scaffolding in progress — this README will be updated with setup/run instructions as each stage lands.
+- [x] **Ingestion** — Kafka (KRaft mode, no Zookeeper) + Pydantic contract + dead-letter routing. Verified end-to-end.
+- [ ] Delta Lakehouse
+- [ ] RAG Pipeline
+- [ ] Orchestration
+- [ ] Quality Gate + Lineage
+
+## Running the ingestion stage (Day 1)
+
+Prerequisites: Docker Desktop, Python 3.11+.
+
+```bash
+# 1. Start Kafka (KRaft mode, single broker)
+cd docker
+docker compose up -d
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Produce simulated flight events (some deliberately malformed)
+cd ../src/ingestion
+python producer.py
+
+# 4. Validate against the FlightEvent contract, routing to
+#    flight-events-validated or flight-events-dlq
+python validator_consumer.py
+```
+
+**Expected output** (see [docs/day1_validator_run.txt](docs/day1_validator_run.txt) for a captured run):
+
+```
+Validation run complete: 200 consumed, 170 accepted -> 'flight-events-validated', 30 rejected -> 'flight-events-dlq'.
+```
+
+Each dead-lettered record carries the original payload plus the specific rejection reason (missing field, invalid enum, negative delay, missing gate on boarding, bad timestamp, missing delay reason) — proving the failure path, not just the happy path.
 
 ## Training program attribution
 

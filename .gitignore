@@ -31,3 +31,6 @@ chroma_db/
 .DS_Store
 .idea/
 .vscode/
+
+# Local assistant tooling config
+.claude/
