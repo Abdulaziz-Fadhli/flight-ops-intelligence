@@ -1,3 +1,11 @@
 # Day 1 - Ingestion
 kafka-python==2.0.2
 pydantic==2.9.2
+
+# Day 3 - RAG pipeline
+chromadb==0.5.5
+sentence-transformers==3.0.1
+rank-bm25==0.2.2
+transformers==4.44.2
+torch==2.4.1
+deltalake==0.19.1

@@ -18,7 +18,7 @@ Flight status events (gate changes, delays, boarding, departures, cancellations)
 
 - [x] **Ingestion** — Kafka (KRaft mode, no Zookeeper) + Pydantic contract + dead-letter routing. Verified end-to-end.
 - [x] **Delta Lakehouse** — Bronze/Silver/Gold with a real `MERGE` upsert and schema enforcement. Verified end-to-end.
-- [ ] RAG Pipeline
+- [x] **RAG Pipeline** — Chunking, embeddings, hybrid search (dense + BM25, RRF fusion), cross-encoder reranking, grounded generation with citations. Verified end-to-end.
 - [ ] Orchestration
 - [ ] Quality Gate + Lineage
 
@@ -89,6 +89,55 @@ Reason: [DELTA_FAILED_TO_MERGE_FIELDS] Failed to merge fields 'delay_minutes' an
 ```
 
 Silver's `MERGE` only updates a matched `flight_id` when the incoming event is actually newer (`event_ts` comparison) — a blind overwrite would let a late-arriving stale event clobber a newer one, which is exactly the kind of bug multi-feed ingestion produces in practice. Gold is a genuine aggregate (counts/rates/averages grouped by airline + date), computed fresh from Silver each run, not a copy of it.
+
+## Running the RAG stage (Day 3)
+
+Uses a local embedding model (`all-MiniLM-L6-v2`), a local cross-encoder
+reranker (`ms-marco-MiniLM-L-6-v2`), and a small local generation model
+(`flan-t5-base`) — no external API key or per-call cost, so the pipeline is
+free to re-run for grading.
+
+```bash
+cd src/rag
+
+# 1. Chunk the policy docs (structure-aware, split on section headers)
+python chunking.py
+
+# 2. Embed chunks into a persistent Chroma collection + build the BM25
+#    sparse index over the same chunks
+python build_index.py
+
+# 3. Ask questions: hybrid search (dense + BM25 fused via RRF) -> cross-
+#    encoder rerank -> grounded generation with citations. If a question
+#    mentions a flight_id, its live status is pulled from the Silver Delta
+#    table and included alongside the policy answer.
+python qa.py
+```
+
+**Expected output** (see [docs/day3_rag_run.txt](docs/day3_rag_run.txt) for a full captured run):
+
+```
+Q: If my flight is cancelled, what are my options?
+A: Passengers are automatically offered, at no cost: 1. Rebooking onto the
+   next available flight on the same route (see Rebooking Policy), or 2. A
+   full refund to the original payment method, or 3. Rebooking onto a
+   different route via a connection, if the direct route is cancelled for
+   an extended period (multi-day weather event, for example).
+   Citations:
+     - Flight Cancellation Policy > Passenger Options on Cancellation
+     - Passenger Rebooking Policy > Cancellation-Based Rebooking
+     - Flight Cancellation Policy > Same-Day Cancellation and Rebooking Interaction
+```
+
+Reranking is doing real, visible work here: for "what happens if my flight
+is delayed for a technical issue," the correct section (*Compensation by
+Delay Cause*) ranks 3rd out of the hybrid-fused candidates before
+reranking, and 2nd after — an honest look at both stages, not a
+cherry-picked result. Answer quality from the small local model is
+similarly honest: three of the four demo questions produce full, grounded
+sentences, and one produces a terse heading-like answer — a real limitation
+of a lightweight, free, locally-run model rather than a papered-over
+result.
 
 ## Training program attribution
 

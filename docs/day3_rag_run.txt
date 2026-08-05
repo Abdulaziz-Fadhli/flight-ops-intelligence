@@ -1,0 +1,33 @@
+Loading retrieval models (embedding + reranker)...
+C:\Users\User\AppData\Local\Programs\Python\Python311\Lib\site-packages\transformers\tokenization_utils_base.py:1601: FutureWarning: `clean_up_tokenization_spaces` was not set. It will be set to `True` by default. This behavior will be depracted in transformers v4.45, and will be then set to `False` by default. For more details check this issue: https://github.com/huggingface/transformers/issues/31884
+  warnings.warn(
+Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+Failed to send telemetry event CollectionQueryEvent: capture() takes 1 positional argument but 3 were given
+
+Q: What compensation am I owed if my flight is delayed 5 hours due to a technical issue?
+A: **TECHNICAL** (aircraft mechanical issue): considered within airline control, same compensation treatment as CREW.
+   Citations:
+     - Delay Compensation Policy > Compensation by Delay Cause
+     - Delay Compensation Policy > Purpose
+     - Delay Compensation Policy > Claiming Compensation
+
+Q: If my flight is cancelled, what are my options?
+A: Passengers are automatically offered, at no cost: 1. Rebooking onto the next available flight on the same route (see Rebooking Policy), or 2. A full refund to the original payment method, or 3. Rebooking onto a different route via a connection, if the direct route is cancelled for an extended period (multi-day weather event, for example).
+   Citations:
+     - Flight Cancellation Policy > Passenger Options on Cancellation
+     - Passenger Rebooking Policy > Cancellation-Based Rebooking
+     - Flight Cancellation Policy > Same-Day Cancellation and Rebooking Interaction
+
+Q: How much notice do I get before a gate change right before my flight departs?
+A: Minimum notice requirements.
+   Citations:
+     - Gate Change Procedures > Minimum Notice Requirements
+     - Flight Cancellation Policy > Notice Period Requirements
+     - Gate Change Procedures > Multiple Gate Changes
+
+Q: Am I entitled to compensation if my flight is delayed because of weather?
+A: No compensation is owed, since weather delays are outside airline control. Passengers delayed over 8 hours still receive a meal voucher and, if overnight, a hotel accommodation voucher.
+   Citations:
+     - Delay Compensation Policy > Compensation by Delay Cause
+     - Delay Compensation Policy > Purpose
+     - Delay Compensation Policy > Claiming Compensation
