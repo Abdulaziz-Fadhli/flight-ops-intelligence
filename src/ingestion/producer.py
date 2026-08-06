@@ -28,13 +28,18 @@ DELAY_REASONS = ["WEATHER", "CREW", "TECHNICAL", "ATC", "LATE_INBOUND"]
 def _good_event(flight_seq: int) -> dict:
     airline = random.choice(AIRLINES)
     status = random.choice(STATUSES)
+    origin = random.choice(AIRPORTS)
+    # A flight can't depart and arrive at the same airport - sample the
+    # destination from the remaining airports so this is never possible,
+    # rather than relying on chance to avoid it.
+    destination = random.choice([a for a in AIRPORTS if a != origin])
     event = {
         "flight_id": f"{airline}{1000 + flight_seq}-{datetime.now(timezone.utc):%Y%m%d}",
         "airline_code": airline,
         "flight_number": str(1000 + flight_seq),
         "scheduled_date": datetime.now(timezone.utc).date().isoformat(),
-        "origin": random.choice(AIRPORTS),
-        "destination": random.choice(AIRPORTS),
+        "origin": origin,
+        "destination": destination,
         "status": status,
         "event_ts": datetime.now(timezone.utc).isoformat(),
         "source_feed": random.choice(["ops_system", "public_tracker"]),

@@ -362,6 +362,29 @@ Rust layer to panic with an exception type that bypasses a plain `except
 Exception` — noted honestly rather than hidden, since the business-rule
 failure path (the one the rubric actually asks for) works correctly.
 
+### Full DAMA 6-dimension coverage (consistency + timeliness)
+
+The two gates originally covered 4 of the 6 DAMA data-quality dimensions
+(completeness, accuracy, uniqueness, validity). Two more were added:
+
+- **Consistency** (Bronze) — `origin != destination`; a flight can't depart
+  and arrive at the same airport.
+- **Timeliness** (Silver) — `event_ts` must fall within 1 day of
+  `scheduled_date`; catches clock skew or a corrupted date.
+
+Adding the consistency check surfaced a real, pre-existing bug: the
+producer picked `origin` and `destination` independently from the same
+5-airport list, so ~19% of all events ever generated (179 of 925 rows in
+Bronze at the time) had the same airport for both. Fixed at the source
+(`destination` is now sampled from the remaining airports) and the 179
+existing bad rows were cleaned from Bronze and Silver before the check was
+added — not left for the new check to immediately start failing on old
+data (see [docs/consistency_and_timeliness_checks_run.txt](docs/consistency_and_timeliness_checks_run.txt)
+for the full before/after). Both new checks were then proven against a
+deliberately injected violation the same way the delay-minutes check was
+proven earlier — a real `FAILED expectation` and OpenLineage `FAIL` event
+for each, followed by cleanup and a re-verified clean pass.
+
 ## Training program attribution
 
 Completed as the capstone project for **Modern Data Engineering for AI Systems**, SDAIA Academy (delivered via Learning Space).

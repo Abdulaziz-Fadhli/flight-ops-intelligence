@@ -1,0 +1,45 @@
+=== Pre-existing data problem found while adding the consistency check ===
+Checked the real Bronze table before adding the check: 179 of 925 rows
+(~19%) had origin == destination - a flight departing and arriving at the
+same airport. Root cause: producer.py picked origin and destination
+independently from the same 5-airport list. Fixed at the source (destination
+is now sampled from the remaining airports, never equal to origin), then
+cleaned the 179 existing bad rows from Bronze and their corresponding rows
+from Silver before adding the permanent check - not left for the new check
+to immediately start failing on old data.
+
+=== Bronze gate: clean run with the new consistency check ===
+Bronze quality gate PASSED: 746 rows checked, 4 expectations satisfied.
+
+=== Silver gate: clean run with the new timeliness check ===
+Silver quality gate PASSED: 474 flights checked, 4 expectations satisfied.
+
+=== Consistency check: proven against a deliberately injected violation ===
+Injected one row with origin == destination (RUH -> RUH) directly into
+Bronze, bypassing the ingestion contract to simulate a bug elsewhere
+letting bad data through:
+
+FAILED expectation: expect_column_values_to_be_in_set -> 1 unexpected value(s)
+[lineage] FAIL job=quality_gate_bronze run_id=4945f3a7-d07e-45a3-87cc-c988cea15b80
+ValueError: Bronze quality gate failed: 1 expectation(s) not met
+
+=== Timeliness check: proven against a deliberately injected violation ===
+Injected one row directly into Silver with event_ts 10 days before its
+scheduled_date:
+
+FAILED expectation: expect_column_values_to_be_between -> 1 unexpected value(s)
+[lineage] FAIL job=quality_gate_silver run_id=adbb857c-7a54-4d3e-8f2b-3c4ed94c75ea
+ValueError: Silver quality gate failed: 1 expectation(s) not met
+
+Both violation rows were removed after the test, and both gates were
+re-run to confirm a clean pass again (746 / 474 rows, 4 expectations each) -
+see above.
+
+=== DAMA dimension coverage after this change ===
+  1. Completeness  - Bronze: flight_id not null
+  2. Accuracy      - Bronze: delay_minutes >= 0
+  3. Consistency   - Bronze: origin != destination            [added]
+  4. Timeliness    - Silver: event_ts within 1 day of scheduled_date [added]
+  5. Uniqueness    - Silver: flight_id unique
+  6. Validity      - Bronze: status in allowed set; Silver: origin/destination match IATA format
+All 6 DAMA dimensions are now covered across the two gates.

@@ -27,12 +27,19 @@ ALLOWED_STATUSES = [
 def run() -> None:
     with lineage_run("quality_gate_bronze"):
         df = DeltaTable(BRONZE_PATH).to_pandas()
+
+        # Consistency: a flight can't depart and arrive at the same airport.
+        # Expressed as a derived boolean column since GX 0.18's pandas API
+        # doesn't have a direct "columns must differ" expectation.
+        df["origin_ne_destination"] = df["origin"] != df["destination"]
+
         gx_df = ge.from_pandas(df)
 
         checks = [
             gx_df.expect_column_values_to_not_be_null("flight_id"),
             gx_df.expect_column_values_to_be_in_set("status", ALLOWED_STATUSES),
             gx_df.expect_column_values_to_be_between("delay_minutes", min_value=0, mostly=1.0),
+            gx_df.expect_column_values_to_be_in_set("origin_ne_destination", [True]),
         ]
 
         failures = [c for c in checks if not c["success"]]
