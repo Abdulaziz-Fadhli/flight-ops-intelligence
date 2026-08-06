@@ -385,6 +385,59 @@ deliberately injected violation the same way the delay-minutes check was
 proven earlier — a real `FAILED expectation` and OpenLineage `FAIL` event
 for each, followed by cleanup and a re-verified clean pass.
 
+### Quality-gating a real downloaded dataset
+
+Everything above runs against the synthetic flight-event generator, since
+that's what the Kafka schema, RAG policy docs, and Airflow DAG are all
+built around. This applies the same 6-dimension DAMA approach to a real
+dataset instead: the US DOT's 2015 flight delay data (~5.8M real flights),
+downloaded live from Kaggle.
+
+Requires a Kaggle account and API key. Set `KAGGLE_USERNAME` and
+`KAGGLE_KEY` as environment variables yourself (from `kaggle.json`,
+downloaded via kaggle.com → Account → API → "Create New Token") — never
+commit them or put them in code.
+
+```bash
+cd src/quality
+python demo_real_flight_dataset.py
+```
+
+Downloads the dataset, profiles the first 200,000 rows (full dataset is
+~5.8M), runs a hand-rolled 6-dimension DAMA scan, runs a real Great
+Expectations checkpoint over a subset of the same rules, and routes the
+result to a production or quarantine Parquet file depending on the
+verdict.
+
+**Expected output** (see [docs/real_dataset_quality_run.txt](docs/real_dataset_quality_run.txt) for a full captured run):
+
+```
+=== Hand-rolled 6-dimension DAMA quality scan ===
+  [PASSED] 1_completeness_tail_number: 402 rows (0.2%) missing TAIL_NUMBER
+  [PASSED] 2_accuracy_departure_delay: 0 rows with DEPARTURE_DELAY outside [-60, 1500] minutes
+  [PASSED] 3_consistency_origin_destination: 0 rows with ORIGIN_AIRPORT == DESTINATION_AIRPORT
+  [PASSED] 4_timeliness_year: 0 rows outside the expected YEAR (2015)
+  [PASSED] 5_uniqueness_rows: 0 exact duplicate rows
+  [PASSED] 6_validity_airline_code: 0 AIRLINE values don't match the 2-character IATA code format
+
+Overall verdict: PASSED (6/6 dimensions passed)
+
+=== Real Great Expectations checkpoint (subset of the same rules) ===
+  [GX] PASSED expect_column_values_to_be_in_set(origin_ne_destination, [True])
+  [GX] PASSED expect_column_values_to_be_in_set(YEAR, [2015])
+  [GX] PASSED expect_column_values_to_match_regex(AIRLINE, ^[A-Z0-9]{2}$)
+
+PASSED -> 200,000 rows written to data/real_dataset_demo/production/flight_delays_clean.parquet
+```
+
+All 6 dimensions pass on this sample — an honest result, not a rigged one:
+this dataset's real messiness lives in columns like `CANCELLATION_REASON`
+and `WEATHER_DELAY`, which are correctly null for ~70-97% of rows because
+they only apply to cancelled or delayed flights, not because the data is
+actually broken. Had the sample failed any dimension, the script would
+have routed it to quarantine instead — the same honest pass/fail behavior
+as every other quality gate in this project.
+
 ## Training program attribution
 
 Completed as the capstone project for **Modern Data Engineering for AI Systems**, SDAIA Academy (delivered via Learning Space).

@@ -1,0 +1,69 @@
+OpenLineageClient will use `console` transport
+{"eventTime": "2026-08-06T14:05:23.393536+00:00", "eventType": "START", "inputs": [], "job": {"facets": {}, "name": "real_dataset_quality_profile", "namespace": "flight-ops-intelligence"}, "outputs": [], "producer": "https://github.com/Abdulaziz-Fadhli/flight-ops-intelligence", "run": {"facets": {}, "runId": "c57e427a-3e30-4f8d-932a-6c4a39de9040"}, "schemaURL": "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent"}
+{"eventTime": "2026-08-06T14:05:25.446671+00:00", "eventType": "COMPLETE", "inputs": [], "job": {"facets": {}, "name": "real_dataset_quality_profile", "namespace": "flight-ops-intelligence"}, "outputs": [], "producer": "https://github.com/Abdulaziz-Fadhli/flight-ops-intelligence", "run": {"facets": {}, "runId": "c57e427a-3e30-4f8d-932a-6c4a39de9040"}, "schemaURL": "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent"}
+[lineage] START job=real_dataset_quality_profile run_id=c57e427a-3e30-4f8d-932a-6c4a39de9040
+
+=================================================================
+  Downloading US DOT 2015 flight delays dataset from Kaggle
+=================================================================
+
+=================================================================
+  Loading first 200,000 rows (full dataset is ~5.8M rows)
+=================================================================
+
+=================================================================
+  RAW DATA PROFILE
+=================================================================
+Shape: 200,000 rows x 31 columns
+
+Null counts (columns with any nulls):
+  TAIL_NUMBER                 402  (  0.2%)
+  DEPARTURE_TIME            4,868  (  2.4%)
+  DEPARTURE_DELAY           4,868  (  2.4%)
+  TAXI_OUT                  5,025  (  2.5%)
+  WHEELS_OFF                5,025  (  2.5%)
+  ELAPSED_TIME              5,599  (  2.8%)
+  AIR_TIME                  5,599  (  2.8%)
+  WHEELS_ON                 5,234  (  2.6%)
+  TAXI_IN                   5,234  (  2.6%)
+  ARRIVAL_TIME              5,234  (  2.6%)
+  ARRIVAL_DELAY             5,599  (  2.8%)
+  CANCELLATION_REASON     194,923  ( 97.5%)
+  AIR_SYSTEM_DELAY        140,399  ( 70.2%)
+  SECURITY_DELAY          140,399  ( 70.2%)
+  AIRLINE_DELAY           140,399  ( 70.2%)
+  LATE_AIRCRAFT_DELAY     140,399  ( 70.2%)
+  WEATHER_DELAY           140,399  ( 70.2%)
+
+DEPARTURE_DELAY range : -42 -> 1450 minutes
+CANCELLED flights     : 5,077
+Diverted flights      : 522
+origin == destination : 0
+Exact duplicate rows  : 0
+
+=================================================================
+  Hand-rolled 6-dimension DAMA quality scan
+=================================================================
+  [PASSED] 1_completeness_tail_number: 402 rows (0.2%) missing TAIL_NUMBER
+  [PASSED] 2_accuracy_departure_delay: 0 rows with DEPARTURE_DELAY outside [-60, 1500] minutes
+  [PASSED] 3_consistency_origin_destination: 0 rows with ORIGIN_AIRPORT == DESTINATION_AIRPORT
+  [PASSED] 4_timeliness_year: 0 rows outside the expected YEAR (2015)
+  [PASSED] 5_uniqueness_rows: 0 exact duplicate rows
+  [PASSED] 6_validity_airline_code: 0 AIRLINE values don't match the 2-character IATA code format
+
+Overall verdict: PASSED (6/6 dimensions passed)
+
+=================================================================
+  Real Great Expectations checkpoint (subset of the same rules)
+=================================================================
+  [GX] PASSED expect_column_values_to_be_in_set(origin_ne_destination, [True])
+  [GX] PASSED expect_column_values_to_be_in_set(YEAR, [2015])
+  [GX] PASSED expect_column_values_to_match_regex(AIRLINE, ^[A-Z0-9]{2}$)
+
+[GX] checkpoint success=True
+
+=================================================================
+  Routing to production or quarantine
+=================================================================
+PASSED -> 200,000 rows written to C:\Users\User\Desktop\Data SDAIA\src\quality\..\..\data\real_dataset_demo\production\flight_delays_clean.parquet
+[lineage] COMPLETE job=real_dataset_quality_profile run_id=c57e427a-3e30-4f8d-932a-6c4a39de9040

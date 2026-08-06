@@ -97,6 +97,9 @@ requirements.txt             Python dependencies (native/local runs)
 |---|---|---|---|
 | `KAFKA_BOOTSTRAP_SERVERS` | ingestion, lakehouse scripts | `localhost:29092` (native), `kafka:9092` (in-container) | Kafka broker address |
 | `LAKEHOUSE_ROOT` | lakehouse, quality scripts | `data/lakehouse` (relative), `/data/lakehouse` (in-container) | Root path for Bronze/Silver/Gold Delta tables |
+| `KAGGLE_USERNAME`, `KAGGLE_KEY` | `src/quality/demo_real_flight_dataset.py` only | none | Kaggle API credentials, needed only for the optional real-dataset demo. Never committed; set as environment variables from your own `kaggle.json`. |
 
-No secrets or API keys are required anywhere in this project — everything
-(Kafka, Spark/Delta, the RAG models) runs locally.
+No secrets or API keys are required for the core pipeline (ingestion,
+lakehouse, RAG, orchestration, synthetic-data quality gates) — everything
+runs locally. The one exception is the optional real-dataset quality demo,
+which needs your own free Kaggle account.
