@@ -92,6 +92,41 @@ Reason: [DELTA_FAILED_TO_MERGE_FIELDS] Failed to merge fields 'delay_minutes' an
 
 Silver's `MERGE` only updates a matched `flight_id` when the incoming event is actually newer (`event_ts` comparison) — a blind overwrite would let a late-arriving stale event clobber a newer one, which is exactly the kind of bug multi-feed ingestion produces in practice. Gold is a genuine aggregate (counts/rates/averages grouped by airline + date), computed fresh from Silver each run, not a copy of it.
 
+### Transaction log, time travel, and OPTIMIZE + Z-ORDER
+
+```bash
+docker compose run --rm spark-runner python3 demo_time_travel_and_optimize.py
+```
+
+Every MERGE against Silver is a logged, queryable version — nothing is
+overwritten in place. This script inspects that log, queries Silver as it
+looked at an earlier version, and runs `OPTIMIZE ... ZORDER BY flight_id` to
+physically co-locate files by the column every downstream query filters or
+joins on.
+
+**Expected output** (see [docs/time_travel_optimize_run.txt](docs/time_travel_optimize_run.txt) for a full captured run):
+
+```
+=== Transaction log: every write Silver has ever recorded ===
++-------+-----------------------+---------+
+|version|timestamp              |operation|
++-------+-----------------------+---------+
+|2      |2026-08-06 00:11:04.828|MERGE    |
+|1      |2026-08-05 23:14:02.426|MERGE    |
+|0      |2026-08-05 23:11:38.271|WRITE    |
++-------+-----------------------+---------+
+
+=== Time travel: Silver as of version 0 vs. current (2) ===
+Version 0 row count: 170
+Version 2 (current) row count: 581
+
+=== OPTIMIZE + Z-ORDER on flight_id ===
+Files removed (small, pre-optimize): 1
+Files added (compacted, Z-ordered): 1
+```
+
+The row counts genuinely differ between version 0 and the current version — this is real history being read back, not a staged number — and the `OPTIMIZE` itself shows up as its own logged version afterward.
+
 ## Running the RAG stage
 
 Uses a local embedding model (`all-MiniLM-L6-v2`), a local cross-encoder

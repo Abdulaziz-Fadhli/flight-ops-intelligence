@@ -1,0 +1,62 @@
+ Container flight-ops-kafka Running 
+ Container docker-spark-runner-run-749a4487af81 Creating 
+ Container docker-spark-runner-run-749a4487af81 Created 
+:: loading settings :: url = jar:file:/usr/local/lib/python3.10/dist-packages/pyspark/jars/ivy-2.5.1.jar!/org/apache/ivy/core/settings/ivysettings.xml
+Ivy Default Cache set to: /root/.ivy2/cache
+The jars for the packages stored in: /root/.ivy2/jars
+io.delta#delta-spark_2.12 added as a dependency
+:: resolving dependencies :: org.apache.spark#spark-submit-parent-f6c56a32-bafa-4364-9e19-50833addec31;1.0
+	confs: [default]
+	found io.delta#delta-spark_2.12;3.2.0 in central
+	found io.delta#delta-storage;3.2.0 in central
+	found org.antlr#antlr4-runtime;4.9.3 in central
+downloading https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.2.0/delta-spark_2.12-3.2.0.jar ...
+	[SUCCESSFUL ] io.delta#delta-spark_2.12;3.2.0!delta-spark_2.12.jar (1025ms)
+downloading https://repo1.maven.org/maven2/io/delta/delta-storage/3.2.0/delta-storage-3.2.0.jar ...
+	[SUCCESSFUL ] io.delta#delta-storage;3.2.0!delta-storage.jar (226ms)
+downloading https://repo1.maven.org/maven2/org/antlr/antlr4-runtime/4.9.3/antlr4-runtime-4.9.3.jar ...
+	[SUCCESSFUL ] org.antlr#antlr4-runtime;4.9.3!antlr4-runtime.jar (240ms)
+:: resolution report :: resolve 3121ms :: artifacts dl 1494ms
+	:: modules in use:
+	io.delta#delta-spark_2.12;3.2.0 from central in [default]
+	io.delta#delta-storage;3.2.0 from central in [default]
+	org.antlr#antlr4-runtime;4.9.3 from central in [default]
+	---------------------------------------------------------------------
+	|                  |            modules            ||   artifacts   |
+	|       conf       | number| search|dwnlded|evicted|| number|dwnlded|
+	---------------------------------------------------------------------
+	|      default     |   3   |   3   |   3   |   0   ||   3   |   3   |
+	---------------------------------------------------------------------
+:: retrieving :: org.apache.spark#spark-submit-parent-f6c56a32-bafa-4364-9e19-50833addec31
+	confs: [default]
+	3 artifacts copied, 0 already retrieved (6321kB/10ms)
+26/08/06 13:08:26 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/08/06 13:08:33 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+=== Transaction log: every write Silver has ever recorded ===
++-------+-----------------------+---------+
+|version|timestamp              |operation|
++-------+-----------------------+---------+
+|2      |2026-08-06 00:11:04.828|MERGE    |
+|1      |2026-08-05 23:14:02.426|MERGE    |
+|0      |2026-08-05 23:11:38.271|WRITE    |
++-------+-----------------------+---------+
+
+=== Time travel: Silver as of version 0 vs. current (2) ===
+Version 0 row count: 170
+Version 2 (current) row count: 581
+-> Same table, two points in history, both queryable - nothing was overwritten or lost.
+=== OPTIMIZE + Z-ORDER on flight_id (the column every query filters/joins on) ===
+Files removed (small, pre-optimize): 1
+Files added (compacted, Z-ordered): 1
+=== Transaction log after OPTIMIZE - the compaction itself is just another logged version ===
++-------+-----------------------+---------+
+|version|timestamp              |operation|
++-------+-----------------------+---------+
+|3      |2026-08-06 13:08:38.729|OPTIMIZE |
+|2      |2026-08-06 00:11:04.828|MERGE    |
+|1      |2026-08-05 23:14:02.426|MERGE    |
+|0      |2026-08-05 23:11:38.271|WRITE    |
++-------+-----------------------+---------+
+
