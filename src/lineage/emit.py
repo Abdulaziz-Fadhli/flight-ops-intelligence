@@ -49,7 +49,7 @@ def lineage_run(job_name: str):
     _emit(job_name, run_id, RunState.START)
     try:
         yield run_id
-    except Exception:
+    except BaseException:
         print(f"[lineage] FAIL job={job_name} run_id={run_id}\n{traceback.format_exc()}")
         _emit(job_name, run_id, RunState.FAIL)
         raise
