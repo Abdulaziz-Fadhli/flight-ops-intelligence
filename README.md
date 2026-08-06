@@ -215,3 +215,7 @@ failure path (the one the rubric actually asks for) works correctly.
 Completed as the capstone project for **Modern Data Engineering for AI Systems**, SDAIA Academy (delivered via Learning Space).
 
 See also: [SDAIA Academy on GitHub](https://github.com/SDAIAAcademy).
+
+## Made By
+
+Abdulaziz Alfadhli · Abdullah Alzahrani · Fahad Alsubaie · Abdulwahab Alolyan
