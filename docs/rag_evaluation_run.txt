@@ -1,0 +1,35 @@
+C:\Users\User\AppData\Local\Programs\Python\Python311\Lib\site-packages\transformers\tokenization_utils_base.py:1601: FutureWarning: `clean_up_tokenization_spaces` was not set. It will be set to `True` by default. This behavior will be depracted in transformers v4.45, and will be then set to `False` by default. For more details check this issue: https://github.com/huggingface/transformers/issues/31884
+  warnings.warn(
+Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+Failed to send telemetry event CollectionQueryEvent: capture() takes 1 positional argument but 3 were given
+======================================================================
+  Retrieval evaluation: context precision + avg similarity
+======================================================================
+
+Query: What compensation am I owed if my flight is delayed 5 hours due to a technical issue?
+  [OK] sim=0.637  Delay Compensation Policy > Compensation by Delay Cause
+  [OK] sim=0.545  Delay Compensation Policy > Purpose
+  [OK] sim=0.674  Delay Compensation Policy > Claiming Compensation
+  -> context_precision=1.0  avg_similarity=0.619
+
+Query: If my flight is cancelled, what are my options?
+  [OK] sim=0.672  Flight Cancellation Policy > Passenger Options on Cancellation
+  [OK] sim=0.579  Passenger Rebooking Policy > Cancellation-Based Rebooking
+  [OK] sim=0.541  Flight Cancellation Policy > Same-Day Cancellation and Rebooking Interaction
+  -> context_precision=1.0  avg_similarity=0.597
+
+Query: How much notice do I get before a gate change right before my flight departs?
+  [OK] sim=0.744  Gate Change Procedures > Minimum Notice Requirements
+  [OK] sim=0.432  Flight Cancellation Policy > Notice Period Requirements
+  [OK] sim=0.547  Gate Change Procedures > Multiple Gate Changes
+  -> context_precision=1.0  avg_similarity=0.574
+
+Query: Am I entitled to compensation if my flight is delayed because of weather?
+  [OK] sim=0.652  Delay Compensation Policy > Compensation by Delay Cause
+  [OK] sim=0.447  Delay Compensation Policy > Purpose
+  [OK] sim=0.626  Delay Compensation Policy > Claiming Compensation
+  -> context_precision=1.0  avg_similarity=0.575
+
+======================================================================
+  Overall: avg context_precision=1.0, avg similarity=0.591 across 4 queries
+======================================================================

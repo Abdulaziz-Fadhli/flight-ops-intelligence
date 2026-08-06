@@ -259,6 +259,40 @@ sentences, and one produces a terse heading-like answer — a real limitation
 of a lightweight, free, locally-run model rather than a papered-over
 result.
 
+### Retrieval evaluation (RAGAS-style context precision + similarity)
+
+```bash
+cd src/rag
+python evaluate.py
+```
+
+Measures the retrieval half of RAG correctness the same way full RAGAS
+computes it under the hood for these two metrics — cosine similarity
+between the query embedding and each retrieved chunk's embedding — without
+needing an LLM judge or an API call. **Context precision**: fraction of the
+final reranked chunks above a relevance threshold. **Average similarity**:
+a recall proxy. Doesn't cover answer faithfulness/relevance, which
+genuinely need an LLM judge and are out of scope for a free, local-only
+pipeline.
+
+**Expected output** (see [docs/rag_evaluation_run.txt](docs/rag_evaluation_run.txt) for a full captured run):
+
+```
+Query: If my flight is cancelled, what are my options?
+  [OK] sim=0.672  Flight Cancellation Policy > Passenger Options on Cancellation
+  [OK] sim=0.579  Passenger Rebooking Policy > Cancellation-Based Rebooking
+  [OK] sim=0.541  Flight Cancellation Policy > Same-Day Cancellation and Rebooking Interaction
+  -> context_precision=1.0  avg_similarity=0.597
+
+Overall: avg context_precision=1.0, avg similarity=0.591 across 4 queries
+```
+
+Precision is a perfect 1.0 across all four demo questions — an honest
+result given the corpus is small (23 chunks across 5 short policy docs) and
+the cross-encoder reranker already filters to the top 3 most relevant
+chunks before this measures them; it isn't evidence the retrieval step is
+flawless at scale, just that it's working correctly on this corpus.
+
 ## Running the orchestration + quality/lineage stage
 
 Airflow runs as its own container (`docker/Dockerfile.airflow`, standalone
