@@ -163,6 +163,53 @@ count only `.parquet` files before trusting the number. Schema evolution
 shows the real, expected behavior: the existing row gets `NULL` for the new
 column rather than the write being rejected, once `mergeSchema=true` is set.
 
+### Windowed stream processing (tumbling/sliding windows, watermark, live Delta sink)
+
+```bash
+docker compose run --rm --workdir /app/streaming spark-runner python3 windowed_processor.py
+```
+
+Standalone and additive — runs independently of the Airflow-orchestrated
+batch pipeline above, which stays exactly as it is. A real streaming engine
+(Flink, Spark Structured Streaming) runs as a long-lived continuous
+process, not a task in a DAG, so this intentionally sits outside Airflow
+rather than forcing continuous stream processing into a batch-task
+orchestrator. Briefly runs a live producer in the background while a
+consumer applies real windowing logic to the live Kafka stream: a tumbling
+window counts events per second, a sliding window tracks each airline's
+rolling average delay, and a watermark drops events that arrive too late
+relative to the newest event seen. Severe delays (>120 min) are written to
+a real Delta table as they're detected.
+
+**Expected output** (see [docs/windowed_stream_processor_run.txt](docs/windowed_stream_processor_run.txt) for a full captured run):
+
+```
+=== Tumbling window: event counts per 1-second bucket ===
+  13:38:03: 5 events
+  13:38:04: 5 events
+  ...
+
+=== Watermark: 0 late event(s) dropped during live processing ===
+
+=== Watermark proof: feeding one synthetic event well behind the current watermark (>3s late) ===
+  Synthetic event 8s behind the watermark -> dropped: True
+
+=== Delta ACID sink: writing 6 severe-delay anomalies ===
++---------------+------------+-------------+--------------------------+--------------------------+
+|flight_id      |airline_code|delay_minutes|event_ts                  |detected_at               |
++---------------+------------+-------------+--------------------------+--------------------------+
+...
+```
+
+Zero events happened to arrive late during any live run — real traffic
+staying in order, not a rigged demo — so the watermark's actual drop
+behavior is proven separately: a synthetic event is fed through the exact
+same `_process_event()` function with a timestamp deliberately placed past
+the lateness threshold, and the script asserts it gets dropped. The
+anomaly count in the Delta sink grows across separate runs (6 new rows
+appended on top of earlier runs' rows) — a real ACID append, not an
+overwrite.
+
 ## Running the RAG stage
 
 Uses a local embedding model (`all-MiniLM-L6-v2`), a local cross-encoder

@@ -1,0 +1,86 @@
+ Container flight-ops-kafka Running 
+ Container docker-spark-runner-run-fe84a5762f59 Creating 
+ Container docker-spark-runner-run-fe84a5762f59 Created 
+:: loading settings :: url = jar:file:/usr/local/lib/python3.10/dist-packages/pyspark/jars/ivy-2.5.1.jar!/org/apache/ivy/core/settings/ivysettings.xml
+Ivy Default Cache set to: /root/.ivy2/cache
+The jars for the packages stored in: /root/.ivy2/jars
+io.delta#delta-spark_2.12 added as a dependency
+:: resolving dependencies :: org.apache.spark#spark-submit-parent-234062fd-7f2d-4b97-8bc7-fbf75a4927c0;1.0
+	confs: [default]
+	found io.delta#delta-spark_2.12;3.2.0 in central
+	found io.delta#delta-storage;3.2.0 in central
+	found org.antlr#antlr4-runtime;4.9.3 in central
+downloading https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.2.0/delta-spark_2.12-3.2.0.jar ...
+	[SUCCESSFUL ] io.delta#delta-spark_2.12;3.2.0!delta-spark_2.12.jar (587ms)
+downloading https://repo1.maven.org/maven2/io/delta/delta-storage/3.2.0/delta-storage-3.2.0.jar ...
+	[SUCCESSFUL ] io.delta#delta-storage;3.2.0!delta-storage.jar (93ms)
+downloading https://repo1.maven.org/maven2/org/antlr/antlr4-runtime/4.9.3/antlr4-runtime-4.9.3.jar ...
+	[SUCCESSFUL ] org.antlr#antlr4-runtime;4.9.3!antlr4-runtime.jar (112ms)
+:: resolution report :: resolve 1852ms :: artifacts dl 795ms
+	:: modules in use:
+	io.delta#delta-spark_2.12;3.2.0 from central in [default]
+	io.delta#delta-storage;3.2.0 from central in [default]
+	org.antlr#antlr4-runtime;4.9.3 from central in [default]
+	---------------------------------------------------------------------
+	|                  |            modules            ||   artifacts   |
+	|       conf       | number| search|dwnlded|evicted|| number|dwnlded|
+	---------------------------------------------------------------------
+	|      default     |   3   |   3   |   3   |   0   ||   3   |   3   |
+	---------------------------------------------------------------------
+:: retrieving :: org.apache.spark#spark-submit-parent-234062fd-7f2d-4b97-8bc7-fbf75a4927c0
+	confs: [default]
+	3 artifacts copied, 0 already retrieved (6321kB/8ms)
+26/08/06 13:37:54 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/08/06 13:38:17 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+=== Starting a brief live producer in the background (12s window) ===
+=== Processing live events: tumbling + sliding windows, watermark ===
+  [ANOMALY] XY1003-20260806 delayed 229min (rolling avg for XY: 229.0min)
+  [ANOMALY] XY1013-20260806 delayed 145min (rolling avg for XY: 187.0min)
+  [ANOMALY] SV1016-20260806 delayed 143min (rolling avg for SV: 143.0min)
+  [ANOMALY] XY1029-20260806 delayed 198min (rolling avg for XY: 171.5min)
+  [ANOMALY] SV1054-20260806 delayed 175min (rolling avg for SV: 175.0min)
+  [ANOMALY] F31055-20260806 delayed 173min (rolling avg for F3: 173.0min)
+Produced 60 events to 'flight-events-raw': 60 well-formed, 0 deliberately malformed.
+
+=== Tumbling window: event counts per 1-second bucket ===
+  13:37:59: 4 events
+  13:38:00: 5 events
+  13:38:01: 5 events
+  13:38:02: 5 events
+  13:38:03: 5 events
+  13:38:04: 5 events
+  13:38:05: 5 events
+  13:38:06: 5 events
+  13:38:07: 5 events
+  13:38:08: 5 events
+  13:38:09: 5 events
+  13:38:10: 5 events
+  13:38:11: 1 events
+
+=== Watermark: 0 late event(s) dropped during live processing ===
+
+=== Watermark proof: feeding one synthetic event well behind the current watermark (>3s late) ===
+  Synthetic event 8s behind the watermark -> dropped: True
+
+=== Delta ACID sink: writing 6 severe-delay anomalies ===
++---------------+------------+-------------+--------------------------+--------------------------+
+|flight_id      |airline_code|delay_minutes|event_ts                  |detected_at               |
++---------------+------------+-------------+--------------------------+--------------------------+
+|SV1041-20260806|SV          |172          |2026-08-06 13:37:25.665391|2026-08-06 13:37:25.668038|
+|F31000-20260806|F3          |165          |2026-08-06 13:37:17.43964 |2026-08-06 13:37:17.446307|
+|SV1022-20260806|SV          |131          |2026-08-06 13:37:21.85489 |2026-08-06 13:37:21.857405|
+|SV1016-20260806|SV          |143          |2026-08-06 13:38:02.440646|2026-08-06 13:38:02.442845|
+|XY1027-20260806|XY          |238          |2026-08-06 13:36:03.386591|2026-08-06 13:36:03.390288|
+|SV1054-20260806|SV          |175          |2026-08-06 13:38:10.062173|2026-08-06 13:38:10.064709|
+|SV1002-20260806|SV          |188          |2026-08-06 13:35:58.372297|2026-08-06 13:35:58.37524 |
+|XY1029-20260806|XY          |198          |2026-08-06 13:38:05.048126|2026-08-06 13:38:05.05068 |
+|F31027-20260806|F3          |236          |2026-08-06 13:37:22.857592|2026-08-06 13:37:22.859948|
+|SV1024-20260806|SV          |214          |2026-08-06 13:36:02.784745|2026-08-06 13:36:02.787411|
+|XY1013-20260806|XY          |145          |2026-08-06 13:38:01.839017|2026-08-06 13:38:01.841213|
+|XY1014-20260806|XY          |140          |2026-08-06 13:36:00.779053|2026-08-06 13:36:00.781922|
+|XY1003-20260806|XY          |229          |2026-08-06 13:37:59.832935|2026-08-06 13:37:59.835124|
+|F31055-20260806|F3          |173          |2026-08-06 13:38:10.262726|2026-08-06 13:38:10.264775|
++---------------+------------+-------------+--------------------------+--------------------------+
+
