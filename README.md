@@ -14,6 +14,8 @@ Flight status events (gate changes, delays, boarding, departures, cancellations)
 4. **Orchestration** — An Airflow DAG wires every stage together; a failed quality gate halts the pipeline before downstream stages run.
 5. **Quality Gate + Lineage** — Great Expectations checks gate the pipeline, and OpenLineage START/COMPLETE/FAIL events are emitted per stage.
 
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full data-flow diagram, repository layout, why each stage runs where it runs, and the environment variables involved.
+
 ## Status
 
 - [x] **Ingestion** — Kafka (KRaft mode, no Zookeeper) + Pydantic contract + dead-letter routing. Verified end-to-end.
