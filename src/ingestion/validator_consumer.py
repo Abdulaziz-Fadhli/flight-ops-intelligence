@@ -8,11 +8,14 @@ routes each record to exactly one place:
                                 specific rejection reason are preserved so
                                 the failure is debuggable, not just discarded
 
-Runs until `idle_timeout_ms` passes with no new messages, so it terminates
-cleanly for demo/evidence runs instead of blocking forever.
+Polls explicitly (rather than relying on the message-iterator's idle
+timeout) and stops after a few consecutive empty polls, since consumer-group
+join/rebalance overhead on a cold start can itself exceed a short idle
+timeout and cause records to be missed.
 """
 
 import json
+import os
 from datetime import datetime, timezone
 
 from kafka import KafkaConsumer, KafkaProducer
@@ -23,49 +26,59 @@ from schema import FlightEvent
 RAW_TOPIC = "flight-events-raw"
 VALIDATED_TOPIC = "flight-events-validated"
 DLQ_TOPIC = "flight-events-dlq"
-BOOTSTRAP_SERVERS = "localhost:29092"
+BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:29092")
 
 
-def run(idle_timeout_ms: int = 8000) -> None:
+def _handle_message(raw_payload: dict, producer: KafkaProducer) -> bool:
+    """Returns True if the record was accepted, False if rejected."""
+    try:
+        event = FlightEvent.model_validate(raw_payload)
+        producer.send(VALIDATED_TOPIC, value=event.model_dump(mode="json"))
+        return True
+    except ValidationError as exc:
+        reasons = [
+            {"field": ".".join(str(p) for p in e["loc"]), "msg": e["msg"], "type": e["type"]}
+            for e in exc.errors()
+        ]
+        dlq_record = {
+            "original_payload": raw_payload,
+            "rejection_reason": reasons,
+            "rejected_at": datetime.now(timezone.utc).isoformat(),
+        }
+        producer.send(DLQ_TOPIC, value=dlq_record)
+        print(f"REJECTED flight_id={raw_payload.get('flight_id', '<missing>')}: "
+              f"{[r['msg'] for r in reasons]}")
+        return False
+
+
+def run(poll_timeout_ms: int = 5000, max_empty_polls: int = 3) -> None:
     consumer = KafkaConsumer(
-        RAW_TOPIC,
         bootstrap_servers=BOOTSTRAP_SERVERS,
         auto_offset_reset="earliest",
         enable_auto_commit=True,
         group_id="flight-events-validator",
-        consumer_timeout_ms=idle_timeout_ms,
         value_deserializer=lambda v: json.loads(v.decode("utf-8")),
     )
+    consumer.subscribe([RAW_TOPIC])
     producer = KafkaProducer(
         bootstrap_servers=BOOTSTRAP_SERVERS,
         value_serializer=lambda v: json.dumps(v).encode("utf-8"),
     )
 
     accepted, rejected = 0, 0
-
-    for message in consumer:
-        raw_payload = message.value
-        try:
-            event = FlightEvent.model_validate(raw_payload)
-            producer.send(VALIDATED_TOPIC, value=event.model_dump(mode="json"))
-            accepted += 1
-        except ValidationError as exc:
-            # exc.errors() can carry a non-serializable exception object in
-            # each error's `ctx`, so we keep only the plain, serializable
-            # fields for the dead-letter record.
-            reasons = [
-                {"field": ".".join(str(p) for p in e["loc"]), "msg": e["msg"], "type": e["type"]}
-                for e in exc.errors()
-            ]
-            dlq_record = {
-                "original_payload": raw_payload,
-                "rejection_reason": reasons,
-                "rejected_at": datetime.now(timezone.utc).isoformat(),
-            }
-            producer.send(DLQ_TOPIC, value=dlq_record)
-            rejected += 1
-            print(f"REJECTED flight_id={raw_payload.get('flight_id', '<missing>')}: "
-                  f"{[r['msg'] for r in reasons]}")
+    empty_polls = 0
+    while empty_polls < max_empty_polls:
+        batches = consumer.poll(timeout_ms=poll_timeout_ms)
+        if not batches:
+            empty_polls += 1
+            continue
+        empty_polls = 0
+        for tp_messages in batches.values():
+            for message in tp_messages:
+                if _handle_message(message.value, producer):
+                    accepted += 1
+                else:
+                    rejected += 1
 
     producer.flush()
     producer.close()

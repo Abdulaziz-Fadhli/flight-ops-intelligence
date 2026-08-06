@@ -1,0 +1,37 @@
+=== Airflow DAG: flight_ops_pipeline ===
+Tasks: produce_and_validate -> load_bronze -> quality_gate_bronze -> silver_merge -> quality_gate_silver -> gold_aggregate
+
+--- Run 1: clean data, full pipeline succeeds ---
+dag_id              | execution_date            | task_id              | state   | start_date                       | end_date
+flight_ops_pipeline | 2026-08-06T00:09:25+00:00 | produce_and_validate | success | 2026-08-06T00:09:28.341817+00:00 | 2026-08-06T00:09:57.996742+00:00
+flight_ops_pipeline | 2026-08-06T00:09:25+00:00 | load_bronze          | success | 2026-08-06T00:10:01.021655+00:00 | 2026-08-06T00:10:34.131676+00:00
+flight_ops_pipeline | 2026-08-06T00:09:25+00:00 | quality_gate_bronze  | success | 2026-08-06T00:10:37.142280+00:00 | 2026-08-06T00:10:44.049968+00:00
+flight_ops_pipeline | 2026-08-06T00:09:25+00:00 | silver_merge         | success | 2026-08-06T00:10:46.885781+00:00 | 2026-08-06T00:11:07.372034+00:00
+flight_ops_pipeline | 2026-08-06T00:09:25+00:00 | quality_gate_silver  | success | 2026-08-06T00:11:10.457284+00:00 | 2026-08-06T00:11:16.486149+00:00
+flight_ops_pipeline | 2026-08-06T00:09:25+00:00 | gold_aggregate       | success | 2026-08-06T00:11:19.418861+00:00 | 2026-08-06T00:11:37.582816+00:00
+
+--- Run 2: one row in Bronze deliberately corrupted (delay_minutes = -500, passes
+    Delta's schema but violates the quality gate's business rule) before
+    triggering the DAG. Pipeline halts exactly where it should. ---
+dag_id              | execution_date            | task_id              | state           | start_date                       | end_date
+flight_ops_pipeline | 2026-08-06T00:14:58+00:00 | produce_and_validate | success         | 2026-08-06T00:15:02.058064+00:00 | 2026-08-06T00:15:31.689239+00:00
+flight_ops_pipeline | 2026-08-06T00:14:58+00:00 | load_bronze          | success         | 2026-08-06T00:15:34.628237+00:00 | 2026-08-06T00:16:07.783883+00:00
+flight_ops_pipeline | 2026-08-06T00:14:58+00:00 | quality_gate_bronze  | FAILED          | 2026-08-06T00:16:10.934685+00:00 | 2026-08-06T00:16:16.423608+00:00
+flight_ops_pipeline | 2026-08-06T00:14:58+00:00 | silver_merge         | upstream_failed | 2026-08-06T00:16:16.446571+00:00 | 2026-08-06T00:16:16.446571+00:00
+flight_ops_pipeline | 2026-08-06T00:14:58+00:00 | quality_gate_silver  | upstream_failed | 2026-08-06T00:16:16.970134+00:00 | 2026-08-06T00:16:16.970134+00:00
+flight_ops_pipeline | 2026-08-06T00:14:58+00:00 | gold_aggregate       | upstream_failed | 2026-08-06T00:16:18.003424+00:00 | 2026-08-06T00:16:18.003424+00:00
+
+--- quality_gate_bronze task log (Run 2) ---
+{"eventTime": "2026-08-06T00:16:15.497559+00:00", "eventType": "START", "job": {"name": "quality_gate_bronze", "namespace": "flight-ops-intelligence"}, "run": {"runId": "793996a6-e605-4ce7-8054-a15df649801b"}, ...}
+{"eventTime": "2026-08-06T00:16:15.698393+00:00", "eventType": "FAIL", "job": {"name": "quality_gate_bronze", "namespace": "flight-ops-intelligence"}, "run": {"runId": "793996a6-e605-4ce7-8054-a15df649801b"}, ...}
+FAILED expectation: expect_column_values_to_be_between -> 1 unexpected value(s)
+ValueError: Bronze quality gate failed: 1 expectation(s) not met
+Command exited with return code 1
+
+Note on a real limitation found and fixed along the way: an earlier version
+of load_bronze's Kafka consumer relied on the message-iterator's idle
+timeout, which could fire before a cold consumer-group join completed and
+silently miss records. It was rewritten to poll explicitly and stop only
+after several consecutive empty polls (see src/ingestion/validator_consumer.py
+and src/lakehouse/kafka_to_bronze.py) - caught during this stage's own testing,
+not left in.

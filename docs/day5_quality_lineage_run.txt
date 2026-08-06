@@ -1,0 +1,51 @@
+=== Quality gates: Great Expectations, run standalone ===
+
+--- Bronze gate, clean data ---
+[lineage] START job=quality_gate_bronze run_id=fe73f1cd-e350-43b4-98ec-346f6b1073a6
+Bronze quality gate PASSED: 418 rows checked, 3 expectations satisfied.
+[lineage] COMPLETE job=quality_gate_bronze run_id=fe73f1cd-e350-43b4-98ec-346f6b1073a6
+
+--- Silver gate, clean data ---
+[lineage] START job=quality_gate_silver run_id=12ed9e90-f7ae-4163-a8d7-25780989e3e0
+Silver quality gate PASSED: 295 flights checked, 3 expectations satisfied.
+[lineage] COMPLETE job=quality_gate_silver run_id=12ed9e90-f7ae-4163-a8d7-25780989e3e0
+
+--- Bronze gate, one row with delay_minutes = -999 injected directly into
+    Bronze (passes Delta's schema enforcement - it's a valid integer - but
+    violates the business rule a schema alone can't express) ---
+OpenLineageClient will use `console` transport
+{"eventTime": "2026-08-05T23:41:22.964912+00:00", "eventType": "START", "job": {"facets": {}, "name": "quality_gate_bronze", "namespace": "flight-ops-intelligence"}, "run": {"facets": {}, "runId": "fd9de15c-bdda-4c5f-8463-022b77072cc7"}, ...}
+{"eventTime": "2026-08-05T23:41:23.007413+00:00", "eventType": "FAIL", "job": {"facets": {}, "name": "quality_gate_bronze", "namespace": "flight-ops-intelligence"}, "run": {"facets": {}, "runId": "fd9de15c-bdda-4c5f-8463-022b77072cc7"}, ...}
+FAILED expectation: expect_column_values_to_be_between -> 1 unexpected value(s)
+ValueError: Bronze quality gate failed: 1 expectation(s) not met
+
+=== Same failure path, exercised through the actual Airflow DAG ===
+(see docs/day4_orchestration_run.txt for the full task-state table - the
+quality_gate_bronze task failure above is what correctly halted
+silver_merge / quality_gate_silver / gold_aggregate via upstream_failed)
+
+--- Silver gate, from inside the DAG run (Run 1) ---
+{"eventTime": "2026-08-06T00:11:15.663759+00:00", "eventType": "START", "job": {"name": "quality_gate_silver", "namespace": "flight-ops-intelligence"}, "run": {"runId": "30adb904-0568-4386-8163-f16baad89c6e"}, ...}
+{"eventTime": "2026-08-06T00:11:15.728621+00:00", "eventType": "COMPLETE", "job": {"name": "quality_gate_silver", "namespace": "flight-ops-intelligence"}, "run": {"runId": "30adb904-0568-4386-8163-f16baad89c6e"}, ...}
+Silver quality gate PASSED: 581 flights checked, 3 expectations satisfied.
+
+=== Expectations checked ===
+Bronze:
+  - expect_column_values_to_not_be_null(flight_id)
+  - expect_column_values_to_be_in_set(status, <7 allowed statuses>)
+  - expect_column_values_to_be_between(delay_minutes, min_value=0, mostly=1.0)
+Silver:
+  - expect_column_values_to_be_unique(flight_id)
+  - expect_column_values_to_match_regex(origin, ^[A-Z]{3,4}$)
+  - expect_column_values_to_match_regex(destination, ^[A-Z]{3,4}$)
+
+=== A real limitation found while testing the FAIL path ===
+Pointing the gate at a nonexistent LAKEHOUSE_ROOT path caused the `deltalake`
+(delta-rs) binding to panic at the Rust layer rather than raise a normal
+catchable Python exception - `pyo3_runtime.PanicException` does not subclass
+`Exception`, so it was not caught by the lineage_run() context manager's
+`except Exception` clause and no FAIL event was emitted for that specific
+case. The quality-gate business-rule failure path (shown above) raises a
+normal ValueError and is correctly caught, logged, and propagated - this is
+noted here rather than hidden, since it's a genuine edge case in the current
+implementation rather than a fabricated success story.

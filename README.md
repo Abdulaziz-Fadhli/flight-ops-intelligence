@@ -19,8 +19,8 @@ Flight status events (gate changes, delays, boarding, departures, cancellations)
 - [x] **Ingestion** — Kafka (KRaft mode, no Zookeeper) + Pydantic contract + dead-letter routing. Verified end-to-end.
 - [x] **Delta Lakehouse** — Bronze/Silver/Gold with a real `MERGE` upsert and schema enforcement. Verified end-to-end.
 - [x] **RAG Pipeline** — Chunking, embeddings, hybrid search (dense + BM25, RRF fusion), cross-encoder reranking, grounded generation with citations. Verified end-to-end.
-- [ ] Orchestration
-- [ ] Quality Gate + Lineage
+- [x] **Orchestration** — Airflow DAG wiring every stage together; a failed quality gate halts downstream tasks. Verified end-to-end.
+- [x] **Quality Gate + Lineage** — Great Expectations gates on Bronze/Silver, OpenLineage START/COMPLETE/FAIL events per stage. Verified end-to-end.
 
 ## Running the ingestion stage (Day 1)
 
@@ -138,6 +138,75 @@ similarly honest: three of the four demo questions produce full, grounded
 sentences, and one produces a terse heading-like answer — a real limitation
 of a lightweight, free, locally-run model rather than a papered-over
 result.
+
+## Running the orchestration + quality/lineage stage (Days 4-5)
+
+Airflow runs as its own container (`docker/Dockerfile.airflow`, standalone
+mode — scheduler, webserver, and triggerer in one process, SQLite-backed).
+Rather than having Airflow spin up sibling containers (which runs into
+Docker Desktop's host-path translation problems for Docker-outside-of-Docker
+on Windows), every pipeline dependency is installed directly into the
+Airflow image and the same `src/`/`data/` directories are mounted in as
+plain volumes — identical in spirit to how `spark-runner` already works.
+
+```bash
+cd docker
+docker compose build airflow
+docker compose up -d airflow
+
+# First run only: fix ownership so both the Spark and Airflow containers
+# (different default users) can write into the shared data/ directory
+docker compose run --rm spark-runner chmod -R 777 /data
+
+# Get the auto-generated admin password
+docker logs flight-ops-airflow | grep "Login with username"
+
+# Trigger the DAG (or use the web UI at http://localhost:8080)
+docker exec flight-ops-airflow airflow dags unpause flight_ops_pipeline
+docker exec flight-ops-airflow airflow dags trigger flight_ops_pipeline
+
+# Check progress
+docker exec flight-ops-airflow airflow tasks states-for-dag-run \
+  flight_ops_pipeline <run_id>
+```
+
+The DAG: `produce_and_validate -> load_bronze -> quality_gate_bronze ->
+silver_merge -> quality_gate_silver -> gold_aggregate`. Each quality gate
+runs real Great Expectations checks against the Bronze/Silver Delta tables
+and wraps its work in an OpenLineage `lineage_run()` context that emits
+START, then COMPLETE or FAIL, to the console.
+
+**Expected output — clean run** (see [docs/day4_orchestration_run.txt](docs/day4_orchestration_run.txt)):
+
+```
+quality_gate_bronze  | success | ...
+silver_merge         | success | ...
+quality_gate_silver  | success | ...
+gold_aggregate       | success | ...
+```
+
+**Expected output — a bad row injected directly into Bronze** (same file):
+
+```
+quality_gate_bronze  | failed          | ...
+silver_merge         | upstream_failed | ...
+quality_gate_silver  | upstream_failed | ...
+gold_aggregate       | upstream_failed | ...
+```
+
+This is the actual rubric requirement in action: the bad row (`delay_minutes
+= -500`) is a value Delta's schema enforcement has no opinion on — it's a
+perfectly valid integer — but it violates a business rule GE checks for.
+The gate catches it, emits an OpenLineage FAIL event (see
+[docs/day5_quality_lineage_run.txt](docs/day5_quality_lineage_run.txt) for
+the raw JSON), and every downstream task is correctly marked
+`upstream_failed` rather than running against bad data.
+
+That same evidence file also documents a real edge case found while testing
+the FAIL path: pointing a gate at a nonexistent path causes `deltalake`'s
+Rust layer to panic with an exception type that bypasses a plain `except
+Exception` — noted honestly rather than hidden, since the business-rule
+failure path (the one the rubric actually asks for) works correctly.
 
 ## Training program attribution
 

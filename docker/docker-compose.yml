@@ -30,11 +30,35 @@ services:
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - LAKEHOUSE_ROOT=/data/lakehouse
     volumes:
-      - ../src/lakehouse:/app
+      - ../src:/app
       - ../data:/data
-    working_dir: /app
+    working_dir: /app/lakehouse
+    profiles:
+      - tools
+
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    container_name: flight-ops-airflow
+    depends_on:
+      - kafka
+    ports:
+      - "8080:8080"
+    environment:
+      - AIRFLOW__CORE__LOAD_EXAMPLES=false
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - LAKEHOUSE_ROOT=/data/lakehouse
+      - PYTHONPATH=/opt/airflow/src/lineage
+    volumes:
+      - ../src:/opt/airflow/src
+      - ../data:/data
+      - ../dags:/opt/airflow/dags
+      - airflow_home:/opt/airflow
+    command: standalone
     profiles:
       - tools
 
 volumes:
   kafka_data:
+  airflow_home:

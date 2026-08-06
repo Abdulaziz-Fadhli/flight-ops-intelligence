@@ -9,6 +9,7 @@ to handle.
 """
 
 import json
+import os
 import random
 import time
 from datetime import datetime, timedelta, timezone
@@ -16,7 +17,7 @@ from datetime import datetime, timedelta, timezone
 from kafka import KafkaProducer
 
 RAW_TOPIC = "flight-events-raw"
-BOOTSTRAP_SERVERS = "localhost:29092"
+BOOTSTRAP_SERVERS = os.environ.get("KAFKA_BOOTSTRAP_SERVERS", "localhost:29092")
 
 AIRLINES = ["SV", "XY", "F3"]
 AIRPORTS = ["RUH", "JED", "DMM", "MED", "AHB"]

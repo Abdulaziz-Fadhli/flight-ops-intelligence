@@ -9,3 +9,7 @@ rank-bm25==0.2.2
 transformers==4.44.2
 torch==2.4.1
 deltalake==0.19.1
+
+# Day 4-5 - Quality gates + lineage (also installed in docker/Dockerfile.airflow)
+great-expectations==0.18.19
+openlineage-python==1.19.0
