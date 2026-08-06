@@ -1,0 +1,62 @@
+ Container flight-ops-kafka Running 
+ Container docker-spark-runner-run-f6d91e096f80 Creating 
+ Container docker-spark-runner-run-f6d91e096f80 Created 
+:: loading settings :: url = jar:file:/usr/local/lib/python3.10/dist-packages/pyspark/jars/ivy-2.5.1.jar!/org/apache/ivy/core/settings/ivysettings.xml
+Ivy Default Cache set to: /root/.ivy2/cache
+The jars for the packages stored in: /root/.ivy2/jars
+io.delta#delta-spark_2.12 added as a dependency
+:: resolving dependencies :: org.apache.spark#spark-submit-parent-ea16fdea-d2d0-4748-83ce-be6451a417c4;1.0
+	confs: [default]
+	found io.delta#delta-spark_2.12;3.2.0 in central
+	found io.delta#delta-storage;3.2.0 in central
+	found org.antlr#antlr4-runtime;4.9.3 in central
+downloading https://repo1.maven.org/maven2/io/delta/delta-spark_2.12/3.2.0/delta-spark_2.12-3.2.0.jar ...
+	[SUCCESSFUL ] io.delta#delta-spark_2.12;3.2.0!delta-spark_2.12.jar (600ms)
+downloading https://repo1.maven.org/maven2/io/delta/delta-storage/3.2.0/delta-storage-3.2.0.jar ...
+	[SUCCESSFUL ] io.delta#delta-storage;3.2.0!delta-storage.jar (99ms)
+downloading https://repo1.maven.org/maven2/org/antlr/antlr4-runtime/4.9.3/antlr4-runtime-4.9.3.jar ...
+	[SUCCESSFUL ] org.antlr#antlr4-runtime;4.9.3!antlr4-runtime.jar (122ms)
+:: resolution report :: resolve 2245ms :: artifacts dl 825ms
+	:: modules in use:
+	io.delta#delta-spark_2.12;3.2.0 from central in [default]
+	io.delta#delta-storage;3.2.0 from central in [default]
+	org.antlr#antlr4-runtime;4.9.3 from central in [default]
+	---------------------------------------------------------------------
+	|                  |            modules            ||   artifacts   |
+	|       conf       | number| search|dwnlded|evicted|| number|dwnlded|
+	---------------------------------------------------------------------
+	|      default     |   3   |   3   |   3   |   0   ||   3   |   3   |
+	---------------------------------------------------------------------
+:: retrieving :: org.apache.spark#spark-submit-parent-ea16fdea-d2d0-4748-83ce-be6451a417c4
+	confs: [default]
+	3 artifacts copied, 0 already retrieved (6321kB/10ms)
+26/08/06 13:27:29 WARN NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Setting default log level to "WARN".
+To adjust logging level use sc.setLogLevel(newLevel). For SparkR, use setLogLevel(newLevel).
+26/08/06 13:27:35 WARN SparkStringUtils: Truncated the string representation of a plan since it was too large. This behavior can be adjusted by setting 'spark.sql.debug.maxToStringFields'.
+Deleted 1 files and directories in a total of 1 directories.
+=== Seeding a disposable scratch table from Silver's current schema/data ===
+Scratch table ready at /data/lakehouse/_demo/vacuum_and_evolution with 2 versions so far.
+
+=== VACUUM: retention cleanup ===
+Delta keeps every historical file so time travel works. VACUUM permanently
+deletes files no longer referenced by the current version, once they're
+older than the retention window - trading away time travel for storage cost.
+Parquet data files before VACUUM: 2
+Parquet data files after VACUUM:  1
+-> Orphaned Parquet files from the superseded write are gone; the table's
+   current version is unaffected, but time travel to it is no longer possible.
+
+=== Schema evolution: adding a column via mergeSchema ===
+Without mergeSchema, appending a row with an extra column is rejected
+(proven for Bronze in demo_schema_enforcement.py). mergeSchema=true instead
+safely adds the new nullable column - existing rows get NULL, not an error.
+Table after schema evolution (existing rows show NULL for the new column):
++---------------+---------------------------------+
+|flight_id      |ops_notes                        |
++---------------+---------------------------------+
+|F31000-20260805|Manually reviewed - no anomalies.|
+|F31000-20260805|NULL                             |
++---------------+---------------------------------+
+
+Scratch table cleaned up (/data/lakehouse/_demo/vacuum_and_evolution removed) - nothing left behind.

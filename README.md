@@ -127,6 +127,42 @@ Files added (compacted, Z-ordered): 1
 
 The row counts genuinely differ between version 0 and the current version — this is real history being read back, not a staged number — and the `OPTIMIZE` itself shows up as its own logged version afterward.
 
+### VACUUM and schema evolution
+
+```bash
+docker compose run --rm spark-runner python3 demo_vacuum_and_schema_evolution.py
+```
+
+Runs against a disposable scratch table seeded from Silver's data, not
+Silver itself — `VACUUM` permanently deletes old file versions, which would
+break the time-travel demo above if run against the same table it depends
+on. Isolating this keeps every script safely re-runnable independently.
+
+**Expected output** (see [docs/vacuum_and_schema_evolution_run.txt](docs/vacuum_and_schema_evolution_run.txt) for a full captured run):
+
+```
+=== VACUUM: retention cleanup ===
+Parquet data files before VACUUM: 2
+Parquet data files after VACUUM:  1
+
+=== Schema evolution: adding a column via mergeSchema ===
+Table after schema evolution (existing rows show NULL for the new column):
++---------------+---------------------------------+
+|flight_id      |ops_notes                        |
++---------------+---------------------------------+
+|F31000-20260805|Manually reviewed - no anomalies.|
+|F31000-20260805|NULL                             |
++---------------+---------------------------------+
+```
+
+`VACUUM` genuinely removes an orphaned Parquet file left behind by a
+superseded write (2 → 1) — the first version of this script actually
+reported the count going *up* after `VACUUM`, because the counting logic
+included `_delta_log` JSON commit files alongside data files; fixed to
+count only `.parquet` files before trusting the number. Schema evolution
+shows the real, expected behavior: the existing row gets `NULL` for the new
+column rather than the write being rejected, once `mergeSchema=true` is set.
+
 ## Running the RAG stage
 
 Uses a local embedding model (`all-MiniLM-L6-v2`), a local cross-encoder
