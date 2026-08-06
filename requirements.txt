@@ -13,3 +13,6 @@ deltalake==0.19.1
 # Quality gates + lineage (also installed in docker/Dockerfile.airflow)
 great-expectations==0.18.19
 openlineage-python==1.19.0
+
+# Testing
+pytest==8.3.3
