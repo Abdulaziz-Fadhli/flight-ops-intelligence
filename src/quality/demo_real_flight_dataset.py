@@ -26,9 +26,18 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "lineage"))
 from emit import lineage_run  # noqa: E402
 
 SAMPLE_ROWS = 200_000
-OUTPUT_ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "data", "real_dataset_demo")
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+OUTPUT_ROOT = os.path.join(PROJECT_ROOT, "data", "real_dataset_demo")
 PRODUCTION_DIR = os.path.join(OUTPUT_ROOT, "production")
 QUARANTINE_DIR = os.path.join(OUTPUT_ROOT, "quarantine")
+
+
+def _display_path(path: str) -> str:
+    """Repo-relative path for anything printed to stdout, since captured
+    output gets committed as evidence - an absolute path would leak the
+    local machine's username and directory layout.
+    """
+    return os.path.relpath(path, PROJECT_ROOT).replace(os.sep, "/")
 
 
 def _sep(label: str) -> None:
@@ -169,12 +178,12 @@ def run() -> None:
         if report["passed"]:
             out_path = os.path.join(PRODUCTION_DIR, "flight_delays_clean.parquet")
             df_raw.to_parquet(out_path, index=False)
-            print(f"PASSED -> {len(df_raw):,} rows written to {out_path}")
+            print(f"PASSED -> {len(df_raw):,} rows written to {_display_path(out_path)}")
         else:
             out_path = os.path.join(QUARANTINE_DIR, "flight_delays_failed_dq.parquet")
             df_raw.to_parquet(out_path, index=False)
             failed = [k for k, v in report["dimensions"].items() if not v["passed"]]
-            print(f"FAILED ({', '.join(failed)}) -> {len(df_raw):,} rows quarantined to {out_path}")
+            print(f"FAILED ({', '.join(failed)}) -> {len(df_raw):,} rows quarantined to {_display_path(out_path)}")
             print("Real data, real problems - this is expected, not a bug: unlike the synthetic")
             print("pipeline's controlled data, a real downloaded dataset isn't guaranteed to pass")
             print("every dimension, and the gate's job is exactly to catch that honestly.")

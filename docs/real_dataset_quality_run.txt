@@ -1,7 +1,7 @@
 OpenLineageClient will use `console` transport
-{"eventTime": "2026-08-06T14:05:23.393536+00:00", "eventType": "START", "inputs": [], "job": {"facets": {}, "name": "real_dataset_quality_profile", "namespace": "flight-ops-intelligence"}, "outputs": [], "producer": "https://github.com/Abdulaziz-Fadhli/flight-ops-intelligence", "run": {"facets": {}, "runId": "c57e427a-3e30-4f8d-932a-6c4a39de9040"}, "schemaURL": "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent"}
-{"eventTime": "2026-08-06T14:05:25.446671+00:00", "eventType": "COMPLETE", "inputs": [], "job": {"facets": {}, "name": "real_dataset_quality_profile", "namespace": "flight-ops-intelligence"}, "outputs": [], "producer": "https://github.com/Abdulaziz-Fadhli/flight-ops-intelligence", "run": {"facets": {}, "runId": "c57e427a-3e30-4f8d-932a-6c4a39de9040"}, "schemaURL": "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent"}
-[lineage] START job=real_dataset_quality_profile run_id=c57e427a-3e30-4f8d-932a-6c4a39de9040
+{"eventTime": "2026-08-06T14:10:22.750990+00:00", "eventType": "START", "inputs": [], "job": {"facets": {}, "name": "real_dataset_quality_profile", "namespace": "flight-ops-intelligence"}, "outputs": [], "producer": "https://github.com/Abdulaziz-Fadhli/flight-ops-intelligence", "run": {"facets": {}, "runId": "f41024cc-9a43-4905-af4b-f570caa5efd4"}, "schemaURL": "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent"}
+{"eventTime": "2026-08-06T14:10:24.867160+00:00", "eventType": "COMPLETE", "inputs": [], "job": {"facets": {}, "name": "real_dataset_quality_profile", "namespace": "flight-ops-intelligence"}, "outputs": [], "producer": "https://github.com/Abdulaziz-Fadhli/flight-ops-intelligence", "run": {"facets": {}, "runId": "f41024cc-9a43-4905-af4b-f570caa5efd4"}, "schemaURL": "https://openlineage.io/spec/1-0-5/OpenLineage.json#/definitions/RunEvent"}
+[lineage] START job=real_dataset_quality_profile run_id=f41024cc-9a43-4905-af4b-f570caa5efd4
 
 =================================================================
   Downloading US DOT 2015 flight delays dataset from Kaggle
@@ -65,5 +65,5 @@ Overall verdict: PASSED (6/6 dimensions passed)
 =================================================================
   Routing to production or quarantine
 =================================================================
-PASSED -> 200,000 rows written to C:\Users\User\Desktop\Data SDAIA\src\quality\..\..\data\real_dataset_demo\production\flight_delays_clean.parquet
-[lineage] COMPLETE job=real_dataset_quality_profile run_id=c57e427a-3e30-4f8d-932a-6c4a39de9040
+PASSED -> 200,000 rows written to data/real_dataset_demo/production/flight_delays_clean.parquet
+[lineage] COMPLETE job=real_dataset_quality_profile run_id=f41024cc-9a43-4905-af4b-f570caa5efd4
