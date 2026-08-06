@@ -20,7 +20,7 @@ FAILED expectation: expect_column_values_to_be_between -> 1 unexpected value(s)
 ValueError: Bronze quality gate failed: 1 expectation(s) not met
 
 === Same failure path, exercised through the actual Airflow DAG ===
-(see docs/day4_orchestration_run.txt for the full task-state table - the
+(see docs/orchestration_run.txt for the full task-state table - the
 quality_gate_bronze task failure above is what correctly halted
 silver_merge / quality_gate_silver / gold_aggregate via upstream_failed)
 

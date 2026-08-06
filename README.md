@@ -24,7 +24,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full data-flow diagram, repositor
 - [x] **Orchestration** — Airflow DAG wiring every stage together; a failed quality gate halts downstream tasks. Verified end-to-end.
 - [x] **Quality Gate + Lineage** — Great Expectations gates on Bronze/Silver, OpenLineage START/COMPLETE/FAIL events per stage. Verified end-to-end.
 
-## Running the ingestion stage (Day 1)
+## Running the ingestion stage
 
 Prerequisites: Docker Desktop, Python 3.11+.
 
@@ -45,7 +45,7 @@ python producer.py
 python validator_consumer.py
 ```
 
-**Expected output** (see [docs/day1_validator_run.txt](docs/day1_validator_run.txt) for a captured run):
+**Expected output** (see [docs/ingestion_validation_run.txt](docs/ingestion_validation_run.txt) for a captured run):
 
 ```
 Validation run complete: 200 consumed, 170 accepted -> 'flight-events-validated', 30 rejected -> 'flight-events-dlq'.
@@ -53,7 +53,7 @@ Validation run complete: 200 consumed, 170 accepted -> 'flight-events-validated'
 
 Each dead-lettered record carries the original payload plus the specific rejection reason (missing field, invalid enum, negative delay, missing gate on boarding, bad timestamp, missing delay reason) — proving the failure path, not just the happy path.
 
-## Running the lakehouse stage (Day 2)
+## Running the lakehouse stage
 
 Runs inside a Linux container (`docker/Dockerfile.spark`) rather than natively on Windows, to avoid the native Hadoop/`winutils.exe` dependency Spark needs on Windows.
 
@@ -76,7 +76,7 @@ docker compose run --rm spark-runner python3 gold_aggregate.py
 docker compose run --rm spark-runner python3 demo_schema_enforcement.py
 ```
 
-**Expected output** (see [docs/day2_lakehouse_run.txt](docs/day2_lakehouse_run.txt) for a full captured run, including the incremental MERGE going from 170 → 295 flights across two batches):
+**Expected output** (see [docs/lakehouse_run.txt](docs/lakehouse_run.txt) for a full captured run, including the incremental MERGE going from 170 → 295 flights across two batches):
 
 ```
 Silver: MERGE complete, 295 flights tracked at /data/lakehouse/silver/flight_state
@@ -92,7 +92,7 @@ Reason: [DELTA_FAILED_TO_MERGE_FIELDS] Failed to merge fields 'delay_minutes' an
 
 Silver's `MERGE` only updates a matched `flight_id` when the incoming event is actually newer (`event_ts` comparison) — a blind overwrite would let a late-arriving stale event clobber a newer one, which is exactly the kind of bug multi-feed ingestion produces in practice. Gold is a genuine aggregate (counts/rates/averages grouped by airline + date), computed fresh from Silver each run, not a copy of it.
 
-## Running the RAG stage (Day 3)
+## Running the RAG stage
 
 Uses a local embedding model (`all-MiniLM-L6-v2`), a local cross-encoder
 reranker (`ms-marco-MiniLM-L-6-v2`), and a small local generation model
@@ -116,7 +116,7 @@ python build_index.py
 python qa.py
 ```
 
-**Expected output** (see [docs/day3_rag_run.txt](docs/day3_rag_run.txt) for a full captured run):
+**Expected output** (see [docs/rag_pipeline_run.txt](docs/rag_pipeline_run.txt) for a full captured run):
 
 ```
 Q: If my flight is cancelled, what are my options?
@@ -141,7 +141,7 @@ sentences, and one produces a terse heading-like answer — a real limitation
 of a lightweight, free, locally-run model rather than a papered-over
 result.
 
-## Running the orchestration + quality/lineage stage (Days 4-5)
+## Running the orchestration + quality/lineage stage
 
 Airflow runs as its own container (`docker/Dockerfile.airflow`, standalone
 mode — scheduler, webserver, and triggerer in one process, SQLite-backed).
@@ -178,7 +178,7 @@ runs real Great Expectations checks against the Bronze/Silver Delta tables
 and wraps its work in an OpenLineage `lineage_run()` context that emits
 START, then COMPLETE or FAIL, to the console.
 
-**Expected output — clean run** (see [docs/day4_orchestration_run.txt](docs/day4_orchestration_run.txt)):
+**Expected output — clean run** (see [docs/orchestration_run.txt](docs/orchestration_run.txt)):
 
 ```
 quality_gate_bronze  | success | ...
@@ -200,7 +200,7 @@ This is the actual rubric requirement in action: the bad row (`delay_minutes
 = -500`) is a value Delta's schema enforcement has no opinion on — it's a
 perfectly valid integer — but it violates a business rule GE checks for.
 The gate catches it, emits an OpenLineage FAIL event (see
-[docs/day5_quality_lineage_run.txt](docs/day5_quality_lineage_run.txt) for
+[docs/quality_lineage_run.txt](docs/quality_lineage_run.txt) for
 the raw JSON), and every downstream task is correctly marked
 `upstream_failed` rather than running against bad data.
 
